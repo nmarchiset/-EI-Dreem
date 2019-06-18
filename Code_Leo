@@ -1,0 +1,190 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import tables
+import h5py
+from random import randint
+import copy
+from scipy import signal, integrate
+from sklearn.ensemble import RandomForestClassifier
+
+f = h5py.File('C:/Users/pugli/Desktop/D R E E M/X_train.h5','r')
+
+for dataname in list(f.keys()):
+        np.savetxt('C:/Users/pugli/Desktop/D R E E M/'+dataname+'.csv', f[dataname], '%g', ',')
+
+def moyenne(liste) :
+    return sum(liste)/len(liste)
+
+def variance(liste) :
+    m = moyenne(liste)
+    return moyenne([(x-m)**2 for x in liste])
+
+list_keys = list(f.keys())
+
+df_eeg1 = f[list_keys[0]][:]
+df_eeg2 = f[list_keys[1]][:]
+df_eeg3 = f[list_keys[2]][:]
+df_eeg4 = f[list_keys[3]][:]
+df_eeg5 = f[list_keys[4]][:]
+df_eeg6 = f[list_keys[5]][:]
+df_eeg7 = f[list_keys[6]][:]
+df_index = f[list_keys[7]][:]
+df_indexa = f[list_keys[8]][:]
+df_indexw = f[list_keys[9]][:]
+df_pulse = f[list_keys[10]][:]
+df_x = f[list_keys[11]][:]
+df_y = f[list_keys[12]][:]
+df_z = f[list_keys[13]][:]
+
+df_classes = pd.read_csv('C:/Users/pugli/Desktop/D R E E M/y_train.csv')
+colors = ['og','or','ob','ok','oy']
+
+# for k in range(5):
+#     means=[[],[],[],[],[]]
+#     vars=[[],[],[],[],[]]
+#     id=np.random.choice(list(range(24688)),500)
+#
+#     for i in id:
+#         means[df_classes['sleep_stage'][i]].append(np.mean(df_eeg1[i]))
+#         vars[df_classes['sleep_stage'][i]].append(np.var(df_eeg1[i]))
+#
+#     for i in range(5):
+#         plt.plot(moyenne(means[i]),moyenne(vars[i]),colors[i])
+#
+# plt.show()
+#
+# FFT = np.fft.fft(df_eeg1[18])
+# freq = np.fft.fftfreq(1500,d=0.02)
+# plt.plot(freq,FFT)
+# plt.show()
+
+
+
+# id=np.random.choice(list(range(24688)),1000)
+#
+# for i in id:
+#     freq, dsp = signal.periodogram(df_eeg5[i],50)
+#
+#     delta = int(np.where(freq==2)[0])
+#     theta = int(np.where(freq==8)[0])
+#     alpha = int(np.where(freq==13)[0])
+#     beta = int(np.where(freq==22)[0])
+#     pows=[]
+#     pows.append(integrate.trapz(dsp[:delta],freq[:delta]))
+#     pows.append(integrate.trapz(dsp[delta:theta],freq[delta:theta]))
+#     pows.append(integrate.trapz(dsp[theta:alpha],freq[theta:alpha]))
+#     pows.append(integrate.trapz(dsp[alpha:beta],freq[alpha:beta]))
+#     pows.append(integrate.trapz(dsp[beta:],freq[beta:]))
+#     totpow=sum(pows)
+#     relpows=[]
+#     for pow in pows:
+#         relpows.append(pow/totpow)
+#     quotpows=[]
+#     for j in range(len(pows)):
+#         for k in range(j+1,len(pows)):
+#             quotpows.append(pows[k]/pows[k])
+#     if deltapow <1000:
+#         plt.plot(i,relpows[1],colors[df_classes['sleep_stage'][i]])
+#
+# plt.show()
+
+
+def MMD(signal):
+    mmd=0
+    for k in range(15):
+        sig=np.copy(signal)
+        sig=sig/max(np.abs(sig))
+        bande = sig[k:(k+1)*100]
+        xmin=np.argmin(bande)
+        xmax=np.argmax(bande)
+        ymin=np.min(bande)
+        ymax=np.max(bande)
+        mmd+=np.abs(np.sqrt((xmax-xmin)**2+(ymax-ymin)**2))
+    return mmd
+
+def powers(eeg):
+    freq, dsp = signal.periodogram(eeg,50)
+
+    delta = int(np.where(freq==2)[0])
+    theta = int(np.where(freq==8)[0])
+    alpha = int(np.where(freq==13)[0])
+    beta = int(np.where(freq==22)[0])
+    pows=[]
+    pows.append(integrate.trapz(dsp[:delta],freq[:delta]))
+    pows.append(integrate.trapz(dsp[delta:theta],freq[delta:theta]))
+    pows.append(integrate.trapz(dsp[theta:alpha],freq[theta:alpha]))
+    pows.append(integrate.trapz(dsp[alpha:beta],freq[alpha:beta]))
+    pows.append(integrate.trapz(dsp[beta:],freq[beta:]))
+    totpow=sum(pows)
+    relpows=[]
+    for pow in pows:
+        relpows.append(pow/totpow)
+    quotpows=[]
+    for j in range(len(pows)):
+        for k in range(j+1,len(pows)):
+            quotpows.append(pows[j]/pows[k])
+    return np.array(relpows),np.array(quotpows)
+
+
+def features(f):
+    df_eeg1 = f[list_keys[0]][:]
+    df_x = f[list_keys[11]][:]
+    df_y = f[list_keys[12]][:]
+    df_z = f[list_keys[13]][:]
+    reldelta=[]
+    reltheta=[]
+    relbeta=[]
+    relalpha=[]
+    relres=[]
+    quotpows=[]
+    varx=[]
+    vary=[]
+    varz=[]
+    mmd=[]
+    moyenne_abs_eeg=[]
+    variance_eeg=[]
+    for i in range(len(df_eeg1)):
+        rel, quot = powers(df_eeg1[i])
+        reldelta.append(rel[0])
+        reltheta.append(rel[1])
+        relbeta.append(rel[2])
+        relalpha.append(rel[3])
+        relres.append(rel[4])
+        #quotpows.append(quot)
+        mmd.append(MMD(df_eeg1[i]))
+        varx.append(np.var(df_x[i]))
+        vary.append(np.var(df_y[i]))
+        varz.append(np.var(df_z[i]))
+        moyenne_abs_eeg.append(np.mean(np.abs(df_eeg1[i])))
+        variance_eeg.append(np.var(df_eeg1[i]))
+    df_features = pd.DataFrame()
+    df_features['moyenne_abs_eeg']=np.array(moyenne_abs_eeg)
+    df_features['variance_eeg']=np.array(variance_eeg)
+    df_features['reldelta']=np.array(reldelta)
+    df_features['reltheta']=np.array(reltheta)
+    df_features['relbeta']=np.array(relbeta)
+    df_features['relalpha']=np.array(relalpha)
+    df_features['relres']=np.array(relres)
+    #df_features['quotpows']=np.array(quotpows)
+    df_features['varx']=np.array(varx)
+    df_features['vary']=np.array(vary)
+    df_features['varz']=np.array(varz)
+    return df_features
+
+df_features = features(f)
+
+
+f_test = h5py.File('C:/Users/pugli/Desktop/D R E E M/X_test.h5','r')
+
+df_features_test = features(f_test)
+
+model = RandomForestClassifier().fit(df_features,df_classes['sleep_stage'])
+
+
+y_predict = model.predict(df_features_test)
+
+
+# with open("C:/Users/pugli/Desktop/D R E E M/" + "y_benchmark.csv", "w") as fichier:
+#     fichier.write("".join(["index,sleep_stage\n"] + ["{},{}\n".format(i, y)
+#     for i, y in enumerate(y_predict, len(df_classes['sleep_stage']))]))
