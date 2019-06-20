@@ -1,0 +1,77 @@
+def features(f):
+    df_eeg = [f[list_keys[i]][:] for i in range(7)]
+    df_x = f[list_keys[11]][:]
+    df_y = f[list_keys[12]][:]
+    df_z = f[list_keys[13]][:]
+    reldelta=[[],[],[],[],[],[],[]]
+    reltheta=[[],[],[],[],[],[],[]]
+    relbeta=[[],[],[],[],[],[],[]]
+    relalpha=[[],[],[],[],[],[],[]]
+    relres=[[],[],[],[],[],[],[]]
+    quotpows=[]
+    varx=[]
+    vary=[]
+    varz=[]
+    mmd=[[],[],[],[],[],[],[]]
+    moyenne_abs_eeg=[[],[],[],[],[],[],[]]
+    variance_eeg=[[],[],[],[],[],[],[]]
+    for i in range(len(df_eeg[1])):
+        relquot = [powers(df_eeg[j][i]) for j in range(7)]
+        for j in range(7):
+            reldelta[j].append(relquot[j][0][0])
+            reltheta[j].append(relquot[j][0][1])
+            relbeta[j].append(relquot[j][0][2])
+            relalpha[j].append(relquot[j][0][3])
+            relres[j].append(relquot[j][0][4])
+            moyenne_abs_eeg[j].append(min(np.mean(np.abs(df_eeg[j][i])),500))
+            variance_eeg[j].append(np.var(df_eeg[j][i]))
+            mmd[j].append(MMD(df_eeg[j][i]))
+        #quotpows.append(quot)
+        varx.append(np.var(df_x[i]))
+        vary.append(np.var(df_y[i]))
+        varz.append(np.var(df_z[i]))
+    df_features = pd.DataFrame()
+    for i in range(7):
+        df_features['moyenne_abs_eeg'+str(i+1)]=np.array(moyenne_abs_eeg[i])
+        df_features['variance_eeg'+str(i+1)]=np.array(variance_eeg[i])
+        df_features['MMD'+str(i+1)]=np.array(mmd[i])
+    df_features['reldelta1']=np.array(reldelta[0])
+    df_features['reltheta1']=np.array(reltheta[0])
+    df_features['relbeta1']=np.array(relbeta[0])
+    df_features['relalpha1']=np.array(relalpha[0])
+    df_features['relres1']=np.array(relres[0])
+    df_features['reldelta2']=np.array(reldelta[1])
+    df_features['reltheta2']=np.array(reltheta[1])
+    df_features['relbeta2']=np.array(relbeta[1])
+    df_features['relalpha2']=np.array(relalpha[1])
+    df_features['relres2']=np.array(relres[1])
+    df_features['reldelta3']=np.array(reldelta[2])
+    df_features['reltheta3']=np.array(reltheta[2])
+    df_features['relbeta3']=np.array(relbeta[2])
+    df_features['relalpha3']=np.array(relalpha[2])
+    df_features['relres3']=np.array(relres[2])
+    df_features['reldelta4']=np.array(reldelta[3])
+    df_features['reltheta4']=np.array(reltheta[3])
+    df_features['relbeta4']=np.array(relbeta[3])
+    df_features['relalpha4']=np.array(relalpha[3])
+    df_features['relres4']=np.array(relres[3])
+    df_features['reldelta5']=np.array(reldelta[4])
+    df_features['reltheta5']=np.array(reltheta[4])
+    df_features['relbeta5']=np.array(relbeta[4])
+    df_features['relalpha5']=np.array(relalpha[4])
+    df_features['relres5']=np.array(relres[4])
+    df_features['reldelta6']=np.array(reldelta[5])
+    df_features['reltheta6']=np.array(reltheta[5])
+    df_features['relbeta6']=np.array(relbeta[5])
+    df_features['relalpha6']=np.array(relalpha[5])
+    df_features['relres6']=np.array(relres[5])
+    df_features['reldelta7']=np.array(reldelta[6])
+    df_features['reltheta7']=np.array(reltheta[6])
+    df_features['relbeta7']=np.array(relbeta[6])
+    df_features['relalpha7']=np.array(relalpha[6])
+    df_features['relres7']=np.array(relres[6])
+    #df_features['quotpows']=np.array(quotpows)
+    df_features['varx']=np.array(varx)
+    df_features['vary']=np.array(vary)
+    df_features['varz']=np.array(varz)
+    return df_features
